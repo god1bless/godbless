@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2a060b">
 <title>godbless</title>
 <meta name="description" content="godbless: umut, huzur ve iyi dilekler için küçük bir köşe.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌅</text></svg>">
@@ -133,7 +134,7 @@
   }
   .rings {
     position: absolute; left: 50%; top: 46%; width: clamp(320px, 78vmin, 760px); aspect-ratio: 1;
-    transform: translate(-50%, -50%); z-index: 0; pointer-events: none;
+    transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px))); transition: transform .25s linear; z-index: 0; pointer-events: none;
   }
   .hero > .rings { position: absolute; }
   .rings b { position: absolute; inset: 0; border-radius: 50%; }
@@ -155,6 +156,20 @@
   #iletisim .links .btn:hover { color: #fff; text-shadow: none; }
   footer { border-top: 1px solid rgba(251,234,234,.1); }
   @media (prefers-reduced-motion: reduce) { .particles, .glow { display: none; } }
+
+  /* --- touch / phone extras --- */
+  .ch.pop {
+    transform: translateY(-.14em) rotate(-8deg) scale(1.12);
+    color: #ff6b78; text-shadow: 0 0 .25em rgba(255,107,120,.7); transition-duration: .18s;
+  }
+  .burst {
+    position: fixed; width: 9px; height: 9px; margin: -4px 0 0 -4px; border-radius: 50%;
+    background: #ff6b78; pointer-events: none; z-index: 5; animation: burst .7s ease-out forwards;
+  }
+  @keyframes burst { to { transform: translate(var(--bx), var(--by)) scale(.2); opacity: 0; } }
+  header svg { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .btn { -webkit-tap-highlight-color: transparent; }
+  @media (hover: none) { .btn.icon:active { transform: scale(.92); } }
 </style>
 </head>
 <body>
@@ -243,6 +258,52 @@ document.getElementById("yil").textContent = new Date().getFullYear();
   window.addEventListener("mousemove", function (e) {
     g.style.opacity = 1;
     g.style.transform = "translate(" + e.clientX + "px," + e.clientY + "px)";
+  });
+})();
+
+(function () {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (!window.matchMedia("(hover: none) and (pointer: coarse)").matches) return;
+  var vib = function (n) { try { navigator.vibrate && navigator.vibrate(n); } catch (e) {} };
+  var glow = document.querySelector(".glow");
+
+  function pop(el) {
+    if (el._busy) return;
+    el._busy = true; el.classList.add("pop"); vib(12);
+    setTimeout(function () { el.classList.remove("pop"); el._busy = false; }, 450);
+  }
+  function burst(x, y) {
+    for (var i = 0; i < 8; i++) {
+      var b = document.createElement("i"), a = Math.PI * 2 * i / 8, r = 36 + Math.random() * 30;
+      b.className = "burst"; b.style.left = x + "px"; b.style.top = y + "px";
+      b.style.setProperty("--bx", Math.cos(a) * r + "px"); b.style.setProperty("--by", Math.sin(a) * r + "px");
+      document.body.appendChild(b);
+      setTimeout(function (n) { n.remove(); }, 750, b);
+    }
+  }
+  function follow(t) {
+    glow.style.opacity = 1;
+    glow.style.transform = "translate(" + t.clientX + "px," + t.clientY + "px)";
+    var el = document.elementFromPoint(t.clientX, t.clientY);
+    if (el && el.classList.contains("ch")) pop(el);
+  }
+  window.addEventListener("touchstart", function (e) {
+    var t = e.touches[0]; follow(t); burst(t.clientX, t.clientY);
+  }, { passive: true });
+  window.addEventListener("touchmove", function (e) { follow(e.touches[0]); }, { passive: true });
+
+  var yy = document.querySelector("header svg");
+  yy.addEventListener("click", function () {
+    vib([20, 40, 20]);
+    yy.animate([{ transform: "rotate(0)" }, { transform: "rotate(720deg)" }], { duration: 1100, easing: "ease-out" });
+  });
+
+  var rings = document.querySelector(".rings");
+  window.addEventListener("deviceorientation", function (e) {
+    if (e.gamma == null) return;
+    var x = Math.max(-30, Math.min(30, e.gamma)) * 0.8;
+    var y = Math.max(-30, Math.min(30, (e.beta || 0) - 40)) * 0.8;
+    rings.style.setProperty("--tx", x + "px"); rings.style.setProperty("--ty", y + "px");
   });
 })();
 </script>
